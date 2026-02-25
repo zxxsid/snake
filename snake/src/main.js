@@ -1,3 +1,5 @@
+// 游戏入口 - 状态机 + 主循环
+
 import './style.css';
 import { Snake } from './snake.js';
 import { PowerUpManager } from './powerup.js';
@@ -5,6 +7,7 @@ import { EnemyManager } from './enemy.js';
 import { Renderer } from './renderer.js';
 import { InputHandler } from './input.js';
 
+// 游戏状态
 const STATE = { MENU: 0, PLAYING: 1, GAME_OVER: 2 };
 
 class Game {
@@ -27,6 +30,7 @@ class Game {
     requestAnimationFrame(ts => this.loop(ts));
   }
 
+  // 开始/重新开始游戏
   startGame() {
     this.snake.reset();
     this.powerups.reset();
@@ -37,57 +41,46 @@ class Game {
     this.state = STATE.PLAYING;
   }
 
+  // 主循环
   loop(ts) {
     const dt = Math.min(ts - this.lastTimestamp, 100);
     this.lastTimestamp = ts;
 
     this.processInput();
-    if (this.state === STATE.PLAYING) {
-      this.update(dt);
-    }
+    if (this.state === STATE.PLAYING) this.update(dt);
     this.render();
 
     requestAnimationFrame(t => this.loop(t));
   }
 
+  // 处理输入
   processInput() {
-    if (this.state === STATE.MENU || this.state === STATE.GAME_OVER) {
-      if (this.input.consumeStart()) {
-        this.startGame();
-        return;
-      }
+    if (this.state !== STATE.PLAYING) {
+      if (this.input.consumeStart()) { this.startGame(); return; }
     }
-
     if (this.state === STATE.PLAYING) {
-      // 消费所有排队的方向输入
       let dir = this.input.consumeDirection();
-      while (dir) {
-        this.snake.setDirection(dir);
-        dir = this.input.consumeDirection();
-      }
+      while (dir) { this.snake.setDirection(dir); dir = this.input.consumeDirection(); }
     }
-
-    // 清空未消费的事件
     this.input.consumeStart();
   }
 
+  // 游戏逻辑更新
   update(dt) {
     this.gameTime += dt;
     if (this.damageFlashTimer > 0) this.damageFlashTimer -= dt;
 
     // 蛇移动
-    const snakeMoved = this.snake.update(dt);
-
-    if (snakeMoved) {
+    const moved = this.snake.update(dt);
+    if (moved) {
       // 拾取道具
-      const collected = this.powerups.checkCollection(this.snake.head.x, this.snake.head.y);
-      if (collected) {
-        this.snake.applyPowerup(collected.type);
-      }
+      const item = this.powerups.checkCollection(this.snake.head.x, this.snake.head.y);
+      if (item) this.snake.applyPowerup(item.type);
     }
 
-    // 刷新道具
-    this.powerups.update(dt, (x, y) => this.snake.occupies(x, y));
+    // 道具刷新（以蛇头为中心）
+    this.powerups.update(dt, this.snake.head.x, this.snake.head.y,
+      (x, y) => this.snake.occupies(x, y));
 
     // 敌人更新
     const { totalDamage, killed } = this.enemies.update(dt, this.snake);
@@ -99,29 +92,25 @@ class Game {
       this.damageFlashTimer = 150;
     }
 
-    // 判定游戏结束
-    if (!this.snake.alive) {
-      this.state = STATE.GAME_OVER;
-    }
+    // 判定结束
+    if (!this.snake.alive) this.state = STATE.GAME_OVER;
   }
 
+  // 渲染
   render() {
-    this.renderer.clear();
-    this.renderer.drawGrid();
-    this.renderer.drawPowerUps(this.powerups.items);
-    this.renderer.drawEnemies(this.enemies.enemies);
-    this.renderer.drawSnake(this.snake);
-    this.renderer.drawHUD(this.snake, this.kills, this.gameTime);
+    const r = this.renderer;
+    r.clear();
+    r.setCamera(this.snake.head);
+    r.drawDesertBackground();
+    r.drawPowerUps(this.powerups.items);
+    r.drawEnemies(this.enemies.enemies);
+    r.drawSnake(this.snake);
+    r.drawVignette();
+    r.drawHUD(this.snake, this.kills, this.gameTime);
 
-    if (this.damageFlashTimer > 0) {
-      this.renderer.drawDamageFlash();
-    }
-
-    if (this.state === STATE.MENU) {
-      this.renderer.drawMenu();
-    } else if (this.state === STATE.GAME_OVER) {
-      this.renderer.drawGameOver(this.snake, this.kills, this.gameTime);
-    }
+    if (this.damageFlashTimer > 0) r.drawDamageFlash();
+    if (this.state === STATE.MENU) r.drawMenu();
+    else if (this.state === STATE.GAME_OVER) r.drawGameOver(this.snake, this.kills, this.gameTime);
   }
 }
 

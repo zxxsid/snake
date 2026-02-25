@@ -19,9 +19,10 @@ describe('Snake', () => {
   });
 
   it('移动后头部位置变化', () => {
-    const oldHead = { ...snake.head };
+    const old = { ...snake.head };
     snake.move();
-    expect(snake.head.x).toBe(oldHead.x + 1);
+    expect(snake.head.x).toBe(old.x + 1);
+    expect(snake.head.y).toBe(old.y);
   });
 
   it('禁止180度转向', () => {
@@ -60,12 +61,12 @@ describe('Snake', () => {
     expect(removed).toBe(1);
   });
 
-  it('穿墙处理', () => {
-    snake.body = [{ x: CONFIG.GRID_COLS - 1, y: 0 }];
+  it('无边界自由移动（不穿墙）', () => {
+    snake.body = [{ x: 100, y: 100 }];
     snake.direction = DIR.RIGHT;
     snake.nextDirection = DIR.RIGHT;
     snake.move();
-    expect(snake.head.x).toBe(0);
+    expect(snake.head.x).toBe(101);
   });
 
   it('长度小于2时alive为false', () => {
@@ -74,10 +75,9 @@ describe('Snake', () => {
   });
 
   it('道具效果正确', () => {
-    const speedType = { effectType: 'speed', effectValue: 1 };
-    const oldSpeed = snake.speed;
-    snake.applyPowerup(speedType);
-    expect(snake.speed).toBe(oldSpeed + 1);
+    const old = snake.speed;
+    snake.applyPowerup({ effectType: 'speed', effectValue: 1 });
+    expect(snake.speed).toBe(old + 1);
   });
 });
 
@@ -85,26 +85,20 @@ describe('PowerUpManager', () => {
   let mgr;
   beforeEach(() => { mgr = new PowerUpManager(); });
 
-  it('生成道具到空白位置', () => {
-    mgr.spawn((x, y) => x === 0 && y === 0);
+  it('在蛇头附近生成道具', () => {
+    mgr.spawn(10, 10, () => false);
     expect(mgr.items.length).toBe(1);
-    const item = mgr.items[0];
-    expect(item.x !== 0 || item.y !== 0).toBe(true);
+    const p = mgr.items[0];
+    const dist = Math.sqrt((p.x - 10) ** 2 + (p.y - 10) ** 2);
+    expect(dist).toBeLessThanOrEqual(CONFIG.SPAWN_RADIUS + 1);
   });
 
   it('拾取道具', () => {
-    mgr.spawn(() => false);
-    const item = mgr.items[0];
-    const collected = mgr.checkCollection(item.x, item.y);
+    mgr.spawn(0, 0, () => false);
+    const p = mgr.items[0];
+    const collected = mgr.checkCollection(p.x, p.y);
     expect(collected).not.toBeNull();
     expect(mgr.items.length).toBe(0);
-  });
-
-  it('不超过最大数量', () => {
-    for (let i = 0; i < CONFIG.POWERUP.MAX_COUNT + 5; i++) {
-      mgr.spawn(() => false);
-    }
-    expect(mgr.items.length).toBeLessThanOrEqual(CONFIG.POWERUP.MAX_COUNT + 5);
   });
 });
 
@@ -136,13 +130,12 @@ describe('Enemy', () => {
 });
 
 describe('EnemyManager', () => {
-  it('从边缘生成敌人', () => {
+  it('在蛇头远处生成敌人', () => {
     const mgr = new EnemyManager();
-    mgr.spawn();
+    mgr.spawn(0, 0);
     expect(mgr.enemies.length).toBe(1);
     const e = mgr.enemies[0];
-    const onEdge = e.x === 0 || e.x === CONFIG.GRID_COLS - 1 ||
-                   e.y === 0 || e.y === CONFIG.GRID_ROWS - 1;
-    expect(onEdge).toBe(true);
+    const dist = Math.sqrt(e.x ** 2 + e.y ** 2);
+    expect(dist).toBeGreaterThanOrEqual(CONFIG.ENEMY.SPAWN_MIN_DIST - 1);
   });
 });

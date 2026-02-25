@@ -1,3 +1,5 @@
+// 输入处理 - 键盘方向键/WASD + 触摸滑动
+
 import { DIR } from './snake.js';
 
 export class InputHandler {
@@ -18,6 +20,7 @@ export class InputHandler {
     canvas.addEventListener('click', this._onClick);
   }
 
+  // 键盘方向映射
   _onKeyDown(e) {
     const map = {
       ArrowUp: DIR.UP, ArrowDown: DIR.DOWN, ArrowLeft: DIR.LEFT, ArrowRight: DIR.RIGHT,
@@ -25,37 +28,29 @@ export class InputHandler {
       a: DIR.LEFT, A: DIR.LEFT, d: DIR.RIGHT, D: DIR.RIGHT,
     };
     const dir = map[e.key];
-    if (dir) {
-      e.preventDefault();
-      this.directionQueue.push(dir);
-    }
-    if (e.key === ' ' || e.key === 'Enter') {
-      e.preventDefault();
-      this.startPressed = true;
-    }
+    if (dir) { e.preventDefault(); this.directionQueue.push(dir); }
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.startPressed = true; }
   }
 
+  // 触摸开始
   _onTouchStart(e) {
     e.preventDefault();
     const t = e.touches[0];
     this.touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
   }
 
+  // 触摸结束 → 判断滑动方向或轻触
   _onTouchEnd(e) {
     e.preventDefault();
     if (!this.touchStart) return;
-
     const t = e.changedTouches[0];
     const dx = t.clientX - this.touchStart.x;
     const dy = t.clientY - this.touchStart.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const elapsed = Date.now() - this.touchStart.time;
 
-    if (dist < 15 || elapsed > 800) {
-      // 轻触 = 开始/重启
+    if (dist < 15) {
       this.startPressed = true;
     } else {
-      // 滑动 = 方向
       if (Math.abs(dx) > Math.abs(dy)) {
         this.directionQueue.push(dx > 0 ? DIR.RIGHT : DIR.LEFT);
       } else {
@@ -65,19 +60,14 @@ export class InputHandler {
     this.touchStart = null;
   }
 
-  _onClick(_e) {
-    this.startPressed = true;
-  }
+  _onClick(_e) { this.startPressed = true; }
 
-  consumeDirection() {
-    return this.directionQueue.shift() || null;
-  }
+  // 消费一个方向输入
+  consumeDirection() { return this.directionQueue.shift() || null; }
 
+  // 消费开始/重启信号
   consumeStart() {
-    if (this.startPressed) {
-      this.startPressed = false;
-      return true;
-    }
+    if (this.startPressed) { this.startPressed = false; return true; }
     return false;
   }
 
