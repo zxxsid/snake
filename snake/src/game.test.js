@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Snake, DIR } from './snake.js';
+import { Snake } from './snake.js';
 import { PowerUpManager } from './powerup.js';
 import { Enemy, EnemyManager } from './enemy.js';
 import { CONFIG } from './config.js';
+
+const C = CONFIG.CELL_SIZE;
 
 describe('Snake', () => {
   let snake;
@@ -18,60 +20,64 @@ describe('Snake', () => {
     expect(snake.defense).toBe(CONFIG.SNAKE.INITIAL_DEFENSE);
   });
 
-  it('移动后头部位置变化', () => {
-    const old = { ...snake.head };
-    snake.move();
-    expect(snake.head.x).toBe(old.x + 1);
-    expect(snake.head.y).toBe(old.y);
+  it('更新后蛇头位置变化', () => {
+    snake.setAngle(0);
+    const oldX = snake.headX;
+    snake.update(100);
+    expect(snake.headX).toBeGreaterThan(oldX);
   });
 
-  it('禁止180度转向', () => {
-    snake.direction = DIR.RIGHT;
-    snake.setDirection(DIR.LEFT);
-    expect(snake.nextDirection).toEqual(DIR.RIGHT);
+  it('设置角度后方向改变', () => {
+    snake.setAngle(Math.PI / 2);
+    const oldY = snake.headY;
+    snake.update(100);
+    expect(snake.headY).toBeGreaterThan(oldY);
   });
 
-  it('允许90度转向', () => {
-    snake.direction = DIR.RIGHT;
-    snake.setDirection(DIR.UP);
-    expect(snake.nextDirection).toEqual(DIR.UP);
+  it('支持8方向/任意角度', () => {
+    snake.setAngle(Math.PI / 4);
+    snake.update(200);
+    expect(snake.headX).toBeGreaterThan(0);
+    expect(snake.headY).toBeGreaterThan(0);
   });
 
-  it('增长后长度增加', () => {
+  it('增长后segments增加', () => {
+    const old = snake.segments;
     snake.grow(3);
-    const oldLen = snake.length;
-    snake.move();
-    expect(snake.length).toBe(oldLen + 1);
+    expect(snake.segments).toBe(old + 3);
   });
 
-  it('受伤后长度减少', () => {
+  it('受伤后segments减少', () => {
     snake.grow(5);
-    for (let i = 0; i < 5; i++) snake.move();
-    const oldLen = snake.length;
+    const old = snake.segments;
     const removed = snake.takeDamage(2);
     expect(removed).toBe(2);
-    expect(snake.length).toBe(oldLen - 2);
+    expect(snake.segments).toBe(old - 2);
   });
 
   it('防御力减免伤害', () => {
     snake.grow(5);
-    for (let i = 0; i < 5; i++) snake.move();
     snake.defense = 1;
     const removed = snake.takeDamage(2);
     expect(removed).toBe(1);
   });
 
-  it('无边界自由移动（不穿墙）', () => {
-    snake.body = [{ x: 100, y: 100 }];
-    snake.direction = DIR.RIGHT;
-    snake.nextDirection = DIR.RIGHT;
-    snake.move();
-    expect(snake.head.x).toBe(101);
+  it('无限地图自由移动', () => {
+    snake.setAngle(0);
+    for (let i = 0; i < 100; i++) snake.update(16);
+    expect(snake.headX).toBeGreaterThan(100);
   });
 
   it('长度小于2时alive为false', () => {
-    snake.body = [{ x: 0, y: 0 }];
+    snake.takeDamage(100);
     expect(snake.alive).toBe(false);
+  });
+
+  it('身体段沿轨迹排列', () => {
+    snake.setAngle(0);
+    for (let i = 0; i < 50; i++) snake.update(16);
+    expect(snake.body.length).toBeGreaterThanOrEqual(2);
+    expect(snake.body[0].x).toBeGreaterThan(snake.body[1].x);
   });
 
   it('道具效果正确', () => {
@@ -93,10 +99,11 @@ describe('PowerUpManager', () => {
     expect(dist).toBeLessThanOrEqual(CONFIG.SPAWN_RADIUS + 1);
   });
 
-  it('拾取道具', () => {
+  it('像素距离拾取道具', () => {
     mgr.spawn(0, 0, () => false);
     const p = mgr.items[0];
-    const collected = mgr.checkCollection(p.x, p.y);
+    const px = p.x * C + C / 2, py = p.y * C + C / 2;
+    const collected = mgr.checkCollection(px, py);
     expect(collected).not.toBeNull();
     expect(mgr.items.length).toBe(0);
   });
@@ -122,10 +129,12 @@ describe('Enemy', () => {
     expect(e.alive).toBe(false);
   });
 
-  it('朝目标移动', () => {
+  it('像素距离攻击检测', () => {
     const e = new Enemy(0, 0, testType);
-    e.moveToward(5, 5);
-    expect(e.x + e.y).toBeGreaterThan(0);
+    e.attackTimer = testType.attackInterval;
+    const body = [{ x: C / 2, y: C / 2 }];
+    const dmg = e.tryAttack(0, body);
+    expect(dmg).toBe(testType.attack);
   });
 });
 

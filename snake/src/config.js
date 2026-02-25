@@ -3,6 +3,8 @@
 export const CONFIG = {
   // 格子尺寸（像素）
   CELL_SIZE: 22,
+  // 蛇身体段间距（像素）
+  SEG_DIST: 18,
 
   // 无边界地图 - 实体管理范围
   SPAWN_RADIUS: 18,
@@ -42,6 +44,13 @@ export const CONFIG = {
       { id: 'boar', name: '野猪', symbol: '猪', color: '#8B4513', hp: 5, attack: 2, speed: 2, attackInterval: 2000, weight: 50 },
       { id: 'wolf', name: '野狼', symbol: '狼', color: '#708090', hp: 3, attack: 3, speed: 3, attackInterval: 1500, weight: 50 },
     ],
+  },
+
+  // 摇杆配置
+  JOYSTICK: {
+    BASE_RADIUS: 55,
+    KNOB_RADIUS: 22,
+    DEAD_ZONE: 8,
   },
 
   // 沙漠主题色
