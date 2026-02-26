@@ -1,0 +1,7 @@
+{
+  "description": "谐音梗大作战 微信小游戏",
+  "setting": { "urlCheck": false, "es6": true, "enhance": true, "compileHotReLoad": false, "postcss": false, "minified": false },
+  "compileType": "game",
+  "appid": "",
+  "projectname": "homophonic"
+}

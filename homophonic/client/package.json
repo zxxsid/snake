@@ -1,0 +1,19 @@
+{
+  "name": "homophonic-client",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint src/",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "eslint": "^9.21.0",
+    "vitest": "^3.0.0",
+    "@eslint/js": "^9.21.0",
+    "globals": "^16.0.0"
+  }
+}
