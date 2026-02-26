@@ -142,11 +142,11 @@ export class BattleScene {
     this.answer = new Array(this.answerLen).fill('');
     this.hintChar = '';
     this.timer = CONFIG.MATCH_TIMER;
-    // 加载图片
     const base = CONFIG.API_BASE;
-    this.hintImage = new Image();
+    const isWx = typeof wx !== 'undefined' && typeof wx.createImage === 'function';
+    this.hintImage = isWx ? wx.createImage() : new Image();
     this.hintImage.src = base + data.hint_image;
-    this.riddleImage = new Image();
+    this.riddleImage = isWx ? wx.createImage() : new Image();
     this.riddleImage.src = base + data.riddle_image;
   }
 

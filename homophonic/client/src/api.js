@@ -1,25 +1,52 @@
 // HTTP/WebSocket API 客户端
+// 兼容浏览器 fetch 和微信 wx.request
 
 import { CONFIG } from './config.js';
+
+const isWx = typeof wx !== 'undefined' && typeof wx.request === 'function';
 
 let _token = '';
 
 export function setToken(t) { _token = t; }
 export function getToken() { return _token; }
 
-// 通用请求
-async function request(method, path, body) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
-  if (_token) opts.headers['Authorization'] = 'Bearer ' + _token;
-  if (body) opts.body = JSON.stringify(body);
+// 通用请求（自动选择 fetch 或 wx.request）
+function request(method, path, body) {
+  const url = CONFIG.API_BASE + path;
+  const headers = { 'Content-Type': 'application/json' };
+  if (_token) headers['Authorization'] = 'Bearer ' + _token;
 
-  const resp = await fetch(CONFIG.API_BASE + path, opts);
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.error || '请求失败');
-  return data;
+  if (isWx) {
+    return new Promise((resolve, reject) => {
+      wx.request({
+        url,
+        method,
+        header: headers,
+        data: body || {},
+        dataType: 'json',
+        success(res) {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(res.data);
+          } else {
+            reject(new Error((res.data && res.data.error) || '请求失败'));
+          }
+        },
+        fail(err) {
+          reject(new Error(err.errMsg || '网络错误'));
+        },
+      });
+    });
+  }
+
+  // 浏览器 fetch
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(url, opts).then(resp => {
+    return resp.json().then(data => {
+      if (!resp.ok) throw new Error(data.error || '请求失败');
+      return data;
+    });
+  });
 }
 
 // --- 用户 ---
@@ -42,5 +69,24 @@ export function joinRoom(roomID) { return request('POST', '/api/room/join', { ro
 // --- WebSocket ---
 export function connectWS(roomID) {
   const url = `${CONFIG.WS_BASE}/ws?room_id=${roomID}&token=${_token}`;
+
+  if (isWx) {
+    // 微信 WebSocket 适配：包装为类似浏览器 WebSocket 的接口
+    const sock = {
+      onmessage: null,
+      onclose: null,
+      onopen: null,
+      _task: null,
+      send(data) { if (this._task) this._task.send({ data }); },
+      close() { if (this._task) this._task.close(); },
+    };
+    sock._task = wx.connectSocket({ url, header: { Authorization: 'Bearer ' + _token } });
+    sock._task.onOpen(() => { if (sock.onopen) sock.onopen(); });
+    sock._task.onMessage(res => { if (sock.onmessage) sock.onmessage({ data: res.data }); });
+    sock._task.onClose(() => { if (sock.onclose) sock.onclose(); });
+    sock._task.onError(() => { if (sock.onclose) sock.onclose(); });
+    return sock;
+  }
+
   return new WebSocket(url);
 }

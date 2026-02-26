@@ -46,6 +46,7 @@ export class ChallengeScene {
   }
 
   async loadPuzzle() {
+    this.loadError = '';
     try {
       const data = await api.getPuzzle(this.seq);
       this.puzzle = data.puzzle;
@@ -55,18 +56,24 @@ export class ChallengeScene {
       this.hintChar = '';
       this.resultMsg = '';
       this.loadImages();
-    } catch (_e) {
-      this.resultMsg = '加载失败，请重试';
+    } catch (e) {
+      this.loadError = e.message || '加载失败，请重试';
     }
+  }
+
+  // 创建图片对象（兼容微信和浏览器）
+  _createImage(src) {
+    const isWx = typeof wx !== 'undefined' && typeof wx.createImage === 'function';
+    const img = isWx ? wx.createImage() : new Image();
+    img.src = src;
+    return img;
   }
 
   loadImages() {
     if (!this.puzzle) return;
     const base = CONFIG.API_BASE;
-    this.hintImage = new Image();
-    this.hintImage.src = base + this.puzzle.hint_image;
-    this.riddleImage = new Image();
-    this.riddleImage.src = base + this.puzzle.riddle_image;
+    this.hintImage = this._createImage(base + this.puzzle.hint_image);
+    this.riddleImage = this._createImage(base + this.puzzle.riddle_image);
   }
 
   onTap(x, y) {
@@ -75,6 +82,12 @@ export class ChallengeScene {
     // 返回主菜单
     if (hitTest(x, y, b.back.x, b.back.y, b.back.w, b.back.h)) {
       this.app.switchScene('menu');
+      return;
+    }
+
+    // 加载失败时点击重试
+    if (!this.puzzle && this.loadError) {
+      this.loadPuzzle();
       return;
     }
 
@@ -183,7 +196,10 @@ export class ChallengeScene {
     if (!this.puzzle) {
       ctx.fillStyle = T.TEXT_LIGHT;
       ctx.font = '16px sans-serif';
-      ctx.fillText('加载中...', cx, H / 2);
+      ctx.fillText(this.loadError || '加载中...', cx, H / 2);
+      if (this.loadError) {
+        drawButton(ctx, '重试', cx - 40, H / 2 + 20, 80, 36, T.PRIMARY);
+      }
       return;
     }
 
