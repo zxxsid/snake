@@ -1,24 +1,27 @@
 // 游戏配置
 export const CONFIG = {
-  // 后端地址（开发模式）
   API_BASE: 'http://localhost:8080',
   WS_BASE: 'ws://localhost:8080',
 
-  // 竞技模式
   MATCH_TOTAL: 10,
   MATCH_HP: 5,
   MATCH_TIMER: 60,
 
-  // UI 颜色
+  // UI 颜色（参考图浅蓝风格）
   THEME: {
-    BG: '#FFF8E1',
-    PRIMARY: '#FF6F00',
-    SECONDARY: '#FFB300',
-    TEXT: '#3E2723',
-    TEXT_LIGHT: '#8D6E63',
+    BG: '#E6F0FA',
+    PRIMARY: '#F5A623',
+    SECONDARY: '#F5A623',
+    ACCENT: '#4A90D9',
+    TEXT: '#2C3E50',
+    TEXT_LIGHT: '#7F8C8D',
     CARD_BG: '#FFFFFF',
-    CORRECT: '#4CAF50',
+    CORRECT: '#F5A623',
     WRONG: '#F44336',
-    BORDER: '#FFCC80',
+    BORDER: '#D6E4F0',
+    BADGE_BG: '#F5A623',
+    BADGE_TEXT: '#FFFFFF',
+    HINT_COLOR: '#F5C842',
+    ANSWER_COLOR: '#EF5350',
   },
 };

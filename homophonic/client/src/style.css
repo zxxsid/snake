@@ -1,4 +1,4 @@
 * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; -webkit-user-select: none; user-select: none; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #FFF8E1; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #E6F0FA; }
 body { display: flex; justify-content: center; align-items: center; }
 #game-canvas { display: block; }

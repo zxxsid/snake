@@ -61,7 +61,7 @@ export class MenuScene {
 
     // 按钮
     drawButton(ctx, '📖 闯关模式', this.btnChallenge.x, this.btnChallenge.y, this.btnChallenge.w, this.btnChallenge.h, T.PRIMARY);
-    drawButton(ctx, '⚔️ 竞技模式', this.btnBattle.x, this.btnBattle.y, this.btnBattle.w, this.btnBattle.h, '#1976D2');
+    drawButton(ctx, '⚔️ 竞技模式', this.btnBattle.x, this.btnBattle.y, this.btnBattle.w, this.btnBattle.h, T.ACCENT || '#4A90D9');
 
     // 底部
     ctx.fillStyle = T.TEXT_LIGHT;
