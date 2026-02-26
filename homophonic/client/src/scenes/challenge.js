@@ -207,17 +207,14 @@ export class ChallengeScene {
       return;
     }
 
-    // 分类标签（顶部右侧）
-    drawCategory(ctx, this.puzzle.category, W - 50, 34);
-
-    // --- 谜面图（1:2 宽高比，居中突出） ---
+    // --- 谜面图（1:2 宽高比，居中突出，向下留出空间） ---
     const imgW = Math.min(W * 0.75, 280);
     const imgH = imgW * 2;
-    const maxImgH = H * 0.52;
+    const maxImgH = H * 0.48;
     const finalH = Math.min(imgH, maxImgH);
     const finalW = finalH / 2;
     const imgX = cx - finalW / 2;
-    const imgY = 56;
+    const imgY = 70;
 
     const imgOk = this.riddleImage && this.riddleImage.complete !== false && (this.riddleImage.width > 0 || this.riddleImage.naturalWidth > 0);
     if (imgOk) {
@@ -234,6 +231,9 @@ export class ChallengeScene {
     } else {
       drawImagePlaceholder(ctx, imgX, imgY, finalW, finalH, '谜面');
     }
+
+    // 分类标签（谜面图下方）
+    drawCategory(ctx, this.puzzle.category, cx, imgY + finalH + 18);
 
     // --- 左侧圆形按钮（无文字标注） ---
     this._drawCircleBtn(ctx, b.hint.cx, b.hint.cy, b.hint.r, '💡', T.SECONDARY);
