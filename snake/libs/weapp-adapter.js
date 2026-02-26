@@ -1,15 +1,14 @@
 // 微信小游戏浏览器 API 适配器
-// 将 wx API 映射为 window/document/canvas 等浏览器标准接口
-// 使游戏代码在浏览器和微信小游戏中均可运行
+// 在已有全局对象上补充浏览器标准接口，兼容新版微信（window 为只读属性）
 
 const _info = wx.getSystemInfoSync();
 
-// 主屏画布（微信第一个 createCanvas 调用返回主屏画布）
+// 主屏画布
 const _canvas = wx.createCanvas();
 _canvas.width = _info.windowWidth;
 _canvas.height = _info.windowHeight;
 
-// 给 canvas 添加 addEventListener / removeEventListener
+// 给 canvas 补充 addEventListener / removeEventListener
 const _bindTouchEvents = (cvs) => {
   const _handlers = {};
   const _ensure = (t) => { if (!_handlers[t]) _handlers[t] = []; };
@@ -23,7 +22,6 @@ const _bindTouchEvents = (cvs) => {
     _handlers[type] = _handlers[type].filter(h => h !== handler);
   };
 
-  // 给微信触摸事件添加 preventDefault（浏览器事件有，微信没有）
   const _patch = (e) => {
     if (!e.preventDefault) e.preventDefault = () => {};
     return e;
@@ -51,12 +49,25 @@ const _bindTouchEvents = (cvs) => {
 
 _bindTouchEvents(_canvas);
 
-// 模拟 window 对象
-const _window = {
-  innerWidth: _info.windowWidth,
-  innerHeight: _info.windowHeight,
-  devicePixelRatio: _info.pixelRatio || 1,
-  addEventListener(type, handler) {
+// --- 安全地设置全局属性（兼容 window 为只读的新版微信） ---
+
+const _safeSet = (obj, key, value) => {
+  try {
+    obj[key] = value;
+  } catch (_e) {
+    Object.defineProperty(obj, key, { value, writable: true, configurable: true });
+  }
+};
+
+// 获取或创建 window 对象
+const _window = (typeof window !== 'undefined') ? window : {};
+
+// 补充 window 缺失的属性
+if (_window.innerWidth === undefined) _window.innerWidth = _info.windowWidth;
+if (_window.innerHeight === undefined) _window.innerHeight = _info.windowHeight;
+if (_window.devicePixelRatio === undefined) _window.devicePixelRatio = _info.pixelRatio || 1;
+if (typeof _window.addEventListener !== 'function') {
+  _window.addEventListener = (type, handler) => {
     if (type === 'resize') {
       wx.onWindowResize(res => {
         _window.innerWidth = res.windowWidth;
@@ -64,24 +75,40 @@ const _window = {
         handler();
       });
     }
-  },
-  removeEventListener() {},
-};
+  };
+}
+if (typeof _window.removeEventListener !== 'function') {
+  _window.removeEventListener = () => {};
+}
 
-// 模拟 document 对象
-const _document = {
-  getElementById() { return _canvas; },
-  createElement(tag) {
+// 获取或创建 document 对象
+const _document = (typeof document !== 'undefined') ? document : {};
+
+if (typeof _document.getElementById !== 'function') {
+  _document.getElementById = () => _canvas;
+}
+if (typeof _document.createElement !== 'function') {
+  _document.createElement = (tag) => {
     if (tag === 'canvas') return wx.createCanvas();
     return {};
-  },
-  addEventListener() {},
-  removeEventListener() {},
-};
+  };
+}
+if (typeof _document.addEventListener !== 'function') {
+  _document.addEventListener = () => {};
+}
+if (typeof _document.removeEventListener !== 'function') {
+  _document.removeEventListener = () => {};
+}
 
-// 注册到全局
-GameGlobal.window = _window;
-GameGlobal.document = _document;
-GameGlobal.canvas = _canvas;
-GameGlobal.requestAnimationFrame = requestAnimationFrame;
-GameGlobal.cancelAnimationFrame = cancelAnimationFrame;
+// 注册到 GameGlobal（用 safeSet 防止只读属性报错）
+_safeSet(GameGlobal, 'window', _window);
+_safeSet(GameGlobal, 'document', _document);
+_safeSet(GameGlobal, 'canvas', _canvas);
+
+// requestAnimationFrame / cancelAnimationFrame 通常已存在
+if (typeof GameGlobal.requestAnimationFrame === 'undefined') {
+  _safeSet(GameGlobal, 'requestAnimationFrame', requestAnimationFrame);
+}
+if (typeof GameGlobal.cancelAnimationFrame === 'undefined') {
+  _safeSet(GameGlobal, 'cancelAnimationFrame', cancelAnimationFrame);
+}
