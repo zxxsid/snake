@@ -127,6 +127,30 @@ func (d *DB) GetRandomPuzzleIDs(n int) ([]int64, error) {
 	return ids, err
 }
 
+// ListPuzzles 分页查询（管理后台）
+func (d *DB) ListPuzzles(page, size int) ([]model.Puzzle, int64, error) {
+	var total int64
+	d.orm.Model(&model.Puzzle{}).Count(&total)
+	var list []model.Puzzle
+	err := d.orm.Order("seq ASC").Offset((page - 1) * size).Limit(size).Find(&list).Error
+	return list, total, err
+}
+
+// CreatePuzzle 新增
+func (d *DB) CreatePuzzle(p *model.Puzzle) error {
+	return d.orm.Create(p).Error
+}
+
+// UpdatePuzzle 更新
+func (d *DB) UpdatePuzzle(id int64, updates map[string]interface{}) error {
+	return d.orm.Model(&model.Puzzle{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// DeletePuzzle 删除
+func (d *DB) DeletePuzzle(id int64) error {
+	return d.orm.Delete(&model.Puzzle{}, id).Error
+}
+
 // --- 对战 ---
 
 func (d *DB) CreateMatch(playerA int64, puzzleIDs []int64) (*model.Match, error) {

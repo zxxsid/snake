@@ -12,11 +12,13 @@ import (
 	"homophonic-server/internal/config"
 	"homophonic-server/internal/middleware"
 	"homophonic-server/internal/service"
+	"homophonic-server/internal/storage"
 )
 
 type Handler struct {
-	db  *service.DB
-	cfg *config.Config
+	db    *service.DB
+	cfg   *config.Config
+	store *storage.S3Store
 }
 
 func New(db *service.DB, cfg *config.Config) *Handler {

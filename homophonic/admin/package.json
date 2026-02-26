@@ -1,0 +1,17 @@
+{
+  "name": "homophonic-admin",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0",
+    "@vitejs/plugin-vue": "^5.2.0"
+  }
+}
