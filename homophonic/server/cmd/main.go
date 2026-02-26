@@ -59,6 +59,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(204)
 			return
 		}
+		// 记录每个请求
+		log.Printf("[HTTP] %s %s", r.Method, r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
 }
