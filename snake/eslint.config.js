@@ -23,4 +23,14 @@ export default [
       },
     },
   },
+  {
+    files: ['libs/**/*.js', 'game.js'],
+    languageOptions: {
+      globals: {
+        wx: 'readonly',
+        GameGlobal: 'readonly',
+        canvas: 'readonly',
+      },
+    },
+  },
 ];

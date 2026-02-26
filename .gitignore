@@ -2,3 +2,4 @@ node_modules
 dist
 snake/node_modules
 snake/dist
+snake/minigame

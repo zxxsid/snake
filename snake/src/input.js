@@ -1,13 +1,19 @@
 // 输入处理 - 键盘多键组合(8方向) + 触屏浮动摇杆(360°)
+// 兼容浏览器和微信小游戏环境
 
 import { CONFIG } from './config.js';
+
+// 安全调用 preventDefault（微信环境可能不支持）
+function safePrevent(e) {
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
+}
 
 export class InputHandler {
   constructor(canvas) {
     this.canvas = canvas;
     this.startPressed = false;
 
-    // 键盘状态
+    // 键盘状态（微信环境无键盘，不影响）
     this.keys = {};
     this.keyAngle = null;
 
@@ -31,6 +37,7 @@ export class InputHandler {
     this._onTouchEnd = this._onTouchEnd.bind(this);
     this._onClick = this._onClick.bind(this);
 
+    // 键盘事件（微信环境 document.addEventListener 为空操作）
     document.addEventListener('keydown', this._onKeyDown);
     document.addEventListener('keyup', this._onKeyUp);
     canvas.addEventListener('touchstart', this._onTouchStart, { passive: false });
@@ -46,8 +53,8 @@ export class InputHandler {
   // --- 键盘 ---
   _onKeyDown(e) {
     this.keys[e.key] = true;
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); this.startPressed = true; }
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
+    if (e.key === ' ' || e.key === 'Enter') { safePrevent(e); this.startPressed = true; }
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) safePrevent(e);
   }
   _onKeyUp(e) { this.keys[e.key] = false; }
 
@@ -64,7 +71,7 @@ export class InputHandler {
 
   // --- 触屏摇杆 ---
   _onTouchStart(e) {
-    e.preventDefault();
+    safePrevent(e);
     if (!this._isPlaying) { this.startPressed = true; return; }
     const t = e.changedTouches[0];
     this._touchId = t.identifier;
@@ -74,7 +81,7 @@ export class InputHandler {
   }
 
   _onTouchMove(e) {
-    e.preventDefault();
+    safePrevent(e);
     const t = this._findTouch(e.touches);
     if (!t || !this._touchStart) return;
 
@@ -102,7 +109,7 @@ export class InputHandler {
   }
 
   _onTouchEnd(e) {
-    e.preventDefault();
+    safePrevent(e);
     const t = this._findTouch(e.changedTouches);
     if (!t) return;
     if (!this.joystick.active && Date.now() - this._touchTime < 300) {

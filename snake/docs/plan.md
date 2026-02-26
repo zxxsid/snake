@@ -3,21 +3,28 @@
 ## 技术栈
 
 - **渲染引擎**: Canvas 2D API
-- **开发工具**: Vite (dev server + build)
+- **开发工具**: Vite (dev server + build) / 微信开发者工具
 - **代码检查**: ESLint 9 (flat config)
 - **单元测试**: Vitest
 - **语言**: ES Module JavaScript
+- **运行环境**: 浏览器（开发）+ 微信小游戏（生产）
 
 ## 架构设计
 
 ```
 snake/
-├── index.html          # 入口 HTML
+├── game.js             # 微信小游戏入口
+├── game.json           # 微信小游戏配置
+├── project.config.json # 微信项目配置
+├── libs/
+│   └── weapp-adapter.js # 微信环境浏览器 API 适配器
+├── index.html          # 浏览器入口
 ├── package.json        # 依赖管理
 ├── vite.config.js      # Vite 配置
 ├── eslint.config.js    # ESLint 配置
 ├── src/
-│   ├── main.js         # 入口 + 游戏主循环
+│   ├── main.js         # 浏览器入口（加载CSS + 启动）
+│   ├── game-core.js    # 游戏核心（平台无关）
 │   ├── config.js       # 游戏配置（道具/敌人/属性）
 │   ├── snake.js        # 蛇实体
 │   ├── powerup.js      # 道具管理器
