@@ -195,24 +195,79 @@ HP（生命值）/ MP（法力值）
 | 💎 钻石 | 充值/签到/成就 | 商城/特权/加速 |
 | 🎫 竞技币 | 竞技场 | 竞技商店兑换 |
 
-### 3.2 充值档位
+### 3.2 充值档位（低门槛）
 
 | 档位 | 价格 | 钻石 | 首充奖励 |
 |------|------|------|---------|
+| 体验 | 1 元 | 10 | +10 钻石+蓝色武器 |
 | 小额 | 6 元 | 60 | +30 钻石 |
-| 月卡 | 30 元 | 300 + 每日 30 | 专属称号 |
-| 中额 | 68 元 | 680 | +200 钻石 |
-| 大额 | 128 元 | 1280 | +500 钻石 |
-| 至尊 | 328 元 | 3280 | 传说武器 |
+| 月卡 | 18 元 | 180 + 每日 20 | 专属称号+每日体力 |
+| 中额 | 30 元 | 300 | +100 钻石 |
+| 大额 | 68 元 | 680 | +300 钻石 |
+| 至尊 | 128 元 | 1280 | 传说武器 |
 
-### 3.3 钻石消耗
+### 3.3 广告激励系统
+
+核心理念：**不充值也能玩，看广告获取等价资源，降低付费压力**
+
+#### 3.3.1 每日广告奖励
+
+| 触发场景 | 广告类型 | 奖励 | 每日上限 |
+|---------|---------|------|---------|
+| 每日签到加倍 | 激励视频 | 签到奖励 ×2 | 1 次 |
+| 免费钻石 | 激励视频 | 5 钻石 | 5 次（共 25 钻/天） |
+| 体力恢复 | 激励视频 | 恢复 50 体力 | 3 次 |
+| 金币宝箱 | 激励视频 | 500-2000 金币随机 | 5 次 |
+| 强化石 | 激励视频 | 强化石 ×1 | 3 次 |
+| 经验加成 | 激励视频 | 30 分钟双倍经验 | 2 次 |
+
+#### 3.3.2 战斗中广告
+
+| 触发场景 | 广告类型 | 奖励 | 限制 |
+|---------|---------|------|------|
+| 死亡原地复活 | 激励视频 | 满血原地复活 | 每次死亡 1 次机会 |
+| BOSS 掉落加倍 | 激励视频 | 本次掉落数量 ×2 | 每日 3 次 |
+| 竞技场额外次数 | 激励视频 | +1 次竞技场机会 | 每日 2 次 |
+| 强化失败保底 | 激励视频 | 下次强化必成功 | 每日 1 次 |
+
+#### 3.3.3 被动广告
+
+| 位置 | 广告类型 | 说明 |
+|------|---------|------|
+| 切换地图加载时 | 插屏广告 | 传送/换图时展示 |
+| 竞技场结算后 | 插屏广告 | 结算页展示 |
+| 商店页底部 | Banner 广告 | 常驻展示 |
+
+### 3.4 分享奖励系统
+
+| 分享场景 | 奖励 | 每日上限 |
+|---------|------|---------|
+| 分享到好友/群 | 10 钻石 | 3 次（共 30 钻/天） |
+| 好友通过分享注册 | 50 钻石 + 蓝色装备箱 | 不限 |
+| 分享击杀 BOSS 截图 | 强化石 ×2 | 1 次 |
+| 邀请好友组队 | 双方 30 分钟双倍经验 | 3 次 |
+| 分享竞技场战绩 | 竞技币 ×50 | 1 次 |
+
+### 3.5 F2P 玩家日收入估算
+
+| 来源 | 每日收入 |
+|------|---------|
+| 每日签到 | 5 钻石 |
+| 看广告 | 25 钻石 |
+| 分享 | 30 钻石 |
+| 竞技场 | 10 竞技币 |
+| 打怪金币 | ~5000 金币 |
+| **合计** | **60 钻/天 ≈ 6 元/天**（月卡价值） |
+
+### 3.6 钻石消耗
 
 - VIP 特权（自动拾取/经验加成/背包扩展）
 - 时装皮肤（纯外观）
 - 强化保护符
 - 竞技场额外次数
-- 复活（死亡不回城）
+- 复活（死亡不回城，优先用广告免费复活）
 - 快速传送
+- 抽奖（装备/道具盲盒）
 
 ---
 
@@ -359,7 +414,22 @@ chat_messages (id, channel, sender_id, content, created_at)
 orders (id, user_id, product_id, amount, diamond, status, wx_order_id, created_at, paid_at)
 
 -- 每日签到
-daily_sign (id, user_id, sign_date, reward_claimed)
+daily_sign (id, user_id, sign_date, reward_claimed, ad_doubled)
+
+-- 广告观看记录
+ad_rewards (id, user_id, ad_type, reward_type, reward_value, created_at)
+  -- ad_type: daily_diamond / revive / boss_double / stamina / gold_box / enhance_stone / exp_boost / arena_extra / enhance_protect
+  -- 用于统计每日上限
+
+-- 每日广告次数统计
+user_daily_ads (id, user_id, ad_type, count, date)
+
+-- 分享记录
+share_logs (id, user_id, share_type, rewarded, created_at)
+  -- share_type: friend / group / boss_kill / arena / invite
+
+-- 邀请关系
+invitations (id, inviter_id, invitee_id, rewarded, created_at)
 
 -- 任务
 quests (id, name, type, target_monster, target_count, reward_exp, reward_gold, reward_item)
@@ -380,6 +450,9 @@ user_quests (id, user_id, quest_id, progress, status)
   pickup    { loot_id }             # 拾取
   chat      { channel, content }    # 聊天
 
+  watch_ad  { ad_type }              # 看完广告上报
+  share     { share_type }           # 分享完成上报
+
 服务端 → 客户端:
   sync      { players, monsters, loots }  # 场景同步（每帧）
   damage    { source, target, amount, crit }
@@ -390,6 +463,9 @@ user_quests (id, user_id, quest_id, progress, status)
   player_leave  { player_id }
   monster_die   { monster_id, drops }
   chat_msg      { sender, content, channel }
+  ad_reward     { type, reward }        # 广告奖励发放
+  share_reward  { type, reward }        # 分享奖励发放
+  revive        { hp }                  # 原地复活成功
 ```
 
 ### 4.4 客户端渲染
@@ -418,8 +494,11 @@ user_quests (id, user_id, quest_id, progress, status)
 - [x] 自动战斗（挂机）
 - [x] 1v1 竞技场
 - [x] 世界聊天
-- [x] 充值入口（钻石购买）
-- [x] 管理后台（玩家/怪物/物品/地图/订单）
+- [x] 充值入口（钻石购买，1 元起）
+- [x] 广告激励（每日钻石/原地复活/掉落加倍/体力恢复）
+- [x] 分享奖励（分享得钻石/邀请好友得装备）
+- [x] 每日签到（看广告翻倍）
+- [x] 管理后台（玩家/怪物/物品/地图/订单/广告统计）
 
 ### 二期扩展
 
