@@ -3,6 +3,7 @@
 
 import { CONFIG } from '../config.js';
 import { roundRect, drawBar, drawJoystick, hitTest, FloatText } from '../ui/common.js';
+import { InventoryPanel, EquipPanel, ShopPanel, SkillPanel } from '../ui/panels.js';
 import { Monster, LootDrop, tileHash, dist } from '../game/entity.js';
 
 const T = CONFIG.THEME;
@@ -65,6 +66,27 @@ export class WorldScene {
     // 击杀统计
     this.killCount = 0;
 
+    // 战斗特效
+    this.effects = [];
+
+    // UI 面板
+    const itemMap = {};
+    (app.gameData?.items || []).forEach(it => { itemMap[it.id] = it; });
+    (app.gameData?.shop_items || []).forEach(it => { itemMap[it.id] = it; });
+    this.itemMap = itemMap;
+    this.invPanel = new InventoryPanel(W, H, app.gameData?.inventory || [], itemMap, app.gameData?.equipment || []);
+    this.equipPanel = new EquipPanel(W, H, app.gameData?.equipment || [], itemMap, this.player);
+    this.shopPanel = new ShopPanel(W, H, app.gameData?.shop_items || [], this.player);
+    this.skillPanel = new SkillPanel(W, H, skills, this.player.level);
+
+    // 底部菜单按钮
+    this.menuBtns = [
+      { id: 'bag',   label: '🎒', x: 10,  y: H - 50, w: 36, h: 36 },
+      { id: 'equip', label: '⚔',  x: 52,  y: H - 50, w: 36, h: 36 },
+      { id: 'skill', label: '📖', x: 94,  y: H - 50, w: 36, h: 36 },
+      { id: 'shop',  label: '🏪', x: 136, y: H - 50, w: 36, h: 36 },
+    ];
+
     app.input.onTap((x, y) => this.onTap(x, y));
   }
 
@@ -88,6 +110,33 @@ export class WorldScene {
 
   // --- 点击处理 ---
   onTap(x, y) {
+    // 面板优先处理
+    if (this.invPanel.onTap(x, y)) return;
+    if (this.equipPanel.onTap(x, y)) return;
+    if (this.skillPanel.onTap(x, y)) return;
+    if (this.shopPanel.onTap(x, y, (item) => this.buyItem(item))) return;
+
+    // 死亡点击复活
+    if (this.player.dead) {
+      this.player.dead = false;
+      this.player.hp = this.player.maxHp;
+      this.player.mp = this.player.maxMp;
+      this.player.x = this.mapData.safe_x || 600;
+      this.player.y = this.mapData.safe_y || 450;
+      return;
+    }
+
+    // 底部菜单按钮
+    for (const btn of this.menuBtns) {
+      if (hitTest(x, y, btn.x, btn.y, btn.w, btn.h)) {
+        if (btn.id === 'bag') this.invPanel.toggle();
+        else if (btn.id === 'equip') this.equipPanel.toggle();
+        else if (btn.id === 'skill') this.skillPanel.toggle();
+        else if (btn.id === 'shop') this.shopPanel.toggle();
+        return;
+      }
+    }
+
     // 自动战斗开关
     if (hitTest(x, y, this.btnAuto.x, this.btnAuto.y, this.btnAuto.w, this.btnAuto.h)) {
       this.autoFight = !this.autoFight;
@@ -113,6 +162,18 @@ export class WorldScene {
         this.pickupLoot(i);
         return;
       }
+    }
+  }
+
+  // 购买商店物品
+  buyItem(item) {
+    if (this.player.gold >= item.buy_price) {
+      this.player.gold -= item.buy_price;
+      this.shopPanel.msg = `购买 ${item.name} 成功`;
+      this.shopPanel.msgTimer = 1500;
+    } else {
+      this.shopPanel.msg = '金币不足';
+      this.shopPanel.msgTimer = 1500;
     }
   }
 
@@ -143,6 +204,8 @@ export class WorldScene {
     const { dmg, crit } = this.calcDamage(p.attack, target.tmpl.defense, p.critRate);
     const dead = target.takeDamage(dmg);
     this.addFloat(target.x, target.y - 20, `-${dmg}${crit ? ' 暴击!' : ''}`, crit ? '#FFD54F' : '#fff');
+    // 攻击特效：斩击线
+    this.effects.push({ type: 'slash', x: target.x, y: target.y, t: 0, dur: 300 });
 
     if (dead) this.onMonsterKill(target);
   }
@@ -257,6 +320,13 @@ export class WorldScene {
     this.floats.forEach(f => f.update(dt));
     this.floats = this.floats.filter(f => f.alive);
 
+    // 战斗特效
+    this.effects.forEach(e => { e.t += dt; });
+    this.effects = this.effects.filter(e => e.t < e.dur);
+
+    // 面板更新
+    this.shopPanel.update(dt);
+
     // 掉落物
     this.loots.forEach(l => l.update(dt));
     this.loots = this.loots.filter(l => l.alive);
@@ -342,17 +412,29 @@ export class WorldScene {
     // 玩家
     this.renderPlayer(ctx);
 
+    // 战斗特效
+    this.renderEffects(ctx);
+
     // 飘字
     this.floats.forEach(f => f.render(ctx, this.camX, this.camY));
 
     // HUD
     this.renderHUD(ctx, W, H);
 
+    // 底部菜单
+    this.renderMenuBtns(ctx);
+
     // 摇杆
     drawJoystick(ctx, this.app.input.joystick);
 
     // 技能
     this.renderSkillBtns(ctx);
+
+    // 面板（最上层）
+    this.invPanel.render(ctx);
+    this.equipPanel.render(ctx);
+    this.shopPanel.render(ctx);
+    this.skillPanel.render(ctx);
 
     // 死亡提示
     if (this.player.dead) {
@@ -597,5 +679,48 @@ export class WorldScene {
       }
     }
     ctx.textBaseline = 'alphabetic';
+  }
+
+  // 底部菜单图标
+  renderMenuBtns(ctx) {
+    for (const btn of this.menuBtns) {
+      roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 8);
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = `${btn.w * 0.5}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+    }
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // 战斗特效渲染
+  renderEffects(ctx) {
+    for (const e of this.effects) {
+      const sx = e.x - this.camX, sy = e.y - this.camY;
+      const t = e.t / e.dur;
+      ctx.globalAlpha = 1 - t;
+
+      if (e.type === 'slash') {
+        // 斩击弧线
+        ctx.strokeStyle = '#FFD54F';
+        ctx.lineWidth = 3 * (1 - t);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 16 + t * 20, -Math.PI * 0.7, Math.PI * 0.3);
+        ctx.stroke();
+        // 火花粒子
+        for (let i = 0; i < 3; i++) {
+          const angle = -Math.PI * 0.7 + i * 0.5;
+          const pr = 16 + t * 30;
+          ctx.fillStyle = '#FF9800';
+          ctx.beginPath();
+          ctx.arc(sx + Math.cos(angle) * pr, sy + Math.sin(angle) * pr, 2 * (1 - t), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+    }
   }
 }
