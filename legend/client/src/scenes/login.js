@@ -17,7 +17,7 @@ export class LoginScene {
     if (hitTest(x, y, this.btnLogin.x, this.btnLogin.y, this.btnLogin.w, this.btnLogin.h)) {
       // 重新登录
       this.app.doLogin().then(() => {
-        if (this.app.user && this.app.user.id > 0) {
+        if (this.app.user) {
           if (!this.app.user.class) this.app.switchScene('select-class');
           else this.app.enterWorld();
         }
