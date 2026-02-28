@@ -52,7 +52,10 @@ export class App {
       const d = await api.login(code, nick, avatar);
       this.user = d.user;
     } catch (_e) {
-      this.user = { id: 0, nickname: '离线冒险者', class: '', level: 1 };
+      // 离线模式：直接给一个可玩的角色
+      this.user = { id: 0, nickname: '离线冒险者', class: 'warrior', level: 1,
+        hp: 100, max_hp: 100, mp: 50, max_mp: 50, attack: 10, defense: 5,
+        speed: 3, crit_rate: 0.05, pos_x: 400, pos_y: 300, gold: 500, diamond: 0 };
     }
   }
 
@@ -61,10 +64,25 @@ export class App {
     try {
       this.gameData = await api.getGameData();
       this.user = this.gameData.user;
-      this.switchScene('world');
     } catch (_e) {
-      this.switchScene('login');
+      // 离线模式：使用默认数据
+      this.gameData = {
+        user: this.user,
+        maps: [{ id: 1, name: '新手村', level_min: 1, level_max: 10, width: 1200, height: 900,
+                 safe_x: 600, safe_y: 450, safe_r: 100, bg_color: '#7EC850', theme: 'grass' }],
+        monsters: [
+          { id: 1, name: '小史莱姆', level: 1, hp: 30, attack: 3, defense: 1, speed: 1, exp_reward: 5, gold_reward: 3, respawn_time: 10, map_id: 1, is_boss: false, aggro_range: 80 },
+          { id: 2, name: '蘑菇仔', level: 3, hp: 50, attack: 5, defense: 2, speed: 1.2, exp_reward: 10, gold_reward: 5, respawn_time: 15, map_id: 1, is_boss: false, aggro_range: 90 },
+          { id: 3, name: '史莱姆王', level: 10, hp: 500, attack: 25, defense: 10, speed: 1.5, exp_reward: 200, gold_reward: 100, respawn_time: 60, map_id: 1, is_boss: true, aggro_range: 150 },
+        ],
+        skills: [
+          { id: 1, name: '猛击', cooldown: 0, damage_ratio: 1, range: 50, aoe_radius: 0, mana_cost: 0 },
+          { id: 2, name: '旋风斩', cooldown: 8, damage_ratio: 1.8, range: 50, aoe_radius: 80, mana_cost: 15 },
+          { id: 3, name: '冲锋', cooldown: 12, damage_ratio: 2, range: 150, aoe_radius: 0, mana_cost: 20 },
+        ],
+      };
     }
+    this.switchScene('world');
   }
 
   // 切换场景
