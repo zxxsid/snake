@@ -4,6 +4,7 @@
 import { CONFIG } from '../config.js';
 import { roundRect, drawBar, drawJoystick, hitTest, FloatText } from '../ui/common.js';
 import { InventoryPanel, EquipPanel, ShopPanel, SkillPanel } from '../ui/panels.js';
+import { ChatPanel, ArenaPanel, RewardPanel } from '../ui/chat.js';
 import { Monster, LootDrop, tileHash, dist } from '../game/entity.js';
 
 const T = CONFIG.THEME;
@@ -79,12 +80,23 @@ export class WorldScene {
     this.shopPanel = new ShopPanel(W, H, app.gameData?.shop_items || [], this.player);
     this.skillPanel = new SkillPanel(W, H, skills, this.player.level);
 
+    this.chatPanel = new ChatPanel(W, H);
+    this.arenaPanel = new ArenaPanel(W, H, this.player);
+    this.rewardPanel = new RewardPanel(W, H);
+
+    // 模拟系统消息
+    this.chatPanel.addMsg('系统', '欢迎来到卡通传奇！');
+    this.chatPanel.addMsg('系统', '击杀怪物获得经验和金币');
+
     // 底部菜单按钮
     this.menuBtns = [
-      { id: 'bag',   label: '🎒', x: 10,  y: H - 50, w: 36, h: 36 },
-      { id: 'equip', label: '⚔',  x: 52,  y: H - 50, w: 36, h: 36 },
-      { id: 'skill', label: '📖', x: 94,  y: H - 50, w: 36, h: 36 },
-      { id: 'shop',  label: '🏪', x: 136, y: H - 50, w: 36, h: 36 },
+      { id: 'bag',    label: '🎒', x: 10,  y: H - 50, w: 36, h: 36 },
+      { id: 'equip',  label: '⚔',  x: 52,  y: H - 50, w: 36, h: 36 },
+      { id: 'skill',  label: '📖', x: 94,  y: H - 50, w: 36, h: 36 },
+      { id: 'shop',   label: '🏪', x: 136, y: H - 50, w: 36, h: 36 },
+      { id: 'chat',   label: '💬', x: 178, y: H - 50, w: 36, h: 36 },
+      { id: 'arena',  label: '🏟',  x: 220, y: H - 50, w: 36, h: 36 },
+      { id: 'reward', label: '🎁', x: 262, y: H - 50, w: 36, h: 36 },
     ];
 
     app.input.onTap((x, y) => this.onTap(x, y));
@@ -110,7 +122,10 @@ export class WorldScene {
 
   // --- 点击处理 ---
   onTap(x, y) {
-    // 面板优先处理
+    // 面板优先处理（最上层的最先处理）
+    if (this.rewardPanel.onTap(x, y, (id) => this.handleReward(id))) return;
+    if (this.arenaPanel.onTap(x, y)) return;
+    if (this.chatPanel.onTap(x, y, (_msg) => {})) return;
     if (this.invPanel.onTap(x, y)) return;
     if (this.equipPanel.onTap(x, y)) return;
     if (this.skillPanel.onTap(x, y)) return;
@@ -133,6 +148,9 @@ export class WorldScene {
         else if (btn.id === 'equip') this.equipPanel.toggle();
         else if (btn.id === 'skill') this.skillPanel.toggle();
         else if (btn.id === 'shop') this.shopPanel.toggle();
+        else if (btn.id === 'chat') this.chatPanel.toggle();
+        else if (btn.id === 'arena') this.arenaPanel.toggle();
+        else if (btn.id === 'reward') this.rewardPanel.toggle();
         return;
       }
     }
@@ -162,6 +180,46 @@ export class WorldScene {
         this.pickupLoot(i);
         return;
       }
+    }
+  }
+
+  // 广告/分享/充值处理
+  handleReward(id) {
+    const p = this.player;
+    switch (id) {
+      case 'ad_diamond':
+        p.diamond = (p.diamond || 0) + 5;
+        this.rewardPanel.msg = '+5 💎 钻石';
+        this.rewardPanel.msgTimer = 1500;
+        this.addFloat(p.x, p.y - 40, '+5💎', '#E040FB');
+        break;
+      case 'ad_stamina':
+        p.stamina = Math.min(100, (p.stamina || 0) + 50);
+        this.rewardPanel.msg = '+50 体力';
+        this.rewardPanel.msgTimer = 1500;
+        break;
+      case 'ad_exp':
+        this.rewardPanel.msg = '双倍经验 30 分钟已激活';
+        this.rewardPanel.msgTimer = 1500;
+        break;
+      case 'share':
+        p.diamond = (p.diamond || 0) + 10;
+        this.rewardPanel.msg = '分享成功 +10💎';
+        this.rewardPanel.msgTimer = 1500;
+        if (typeof wx !== 'undefined') {
+          wx.shareAppMessage({ title: '我在卡通传奇打到了稀有装备！', query: '' });
+        }
+        break;
+      case 'sign':
+        this.rewardPanel.msg = '签到成功 +5💎 +500金币';
+        this.rewardPanel.msgTimer = 1500;
+        p.diamond = (p.diamond || 0) + 5;
+        p.gold = (p.gold || 0) + 500;
+        break;
+      case 'recharge':
+        this.rewardPanel.msg = '充值功能开发中';
+        this.rewardPanel.msgTimer = 1500;
+        break;
     }
   }
 
@@ -326,6 +384,7 @@ export class WorldScene {
 
     // 面板更新
     this.shopPanel.update(dt);
+    this.rewardPanel.update(dt);
 
     // 掉落物
     this.loots.forEach(l => l.update(dt));
@@ -435,6 +494,9 @@ export class WorldScene {
     this.equipPanel.render(ctx);
     this.shopPanel.render(ctx);
     this.skillPanel.render(ctx);
+    this.chatPanel.render(ctx);
+    this.arenaPanel.render(ctx);
+    this.rewardPanel.render(ctx);
 
     // 死亡提示
     if (this.player.dead) {
